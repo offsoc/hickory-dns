@@ -26,19 +26,19 @@ use crate::{
 };
 
 /// A stream returning DNS responses
-pub struct DnsResponseStream {
-    inner: DnsResponseStreamInner,
+pub struct DnsResponseStream<E> {
+    inner: DnsResponseStreamInner<E>,
     done: bool,
 }
 
-impl DnsResponseStream {
-    fn new(inner: DnsResponseStreamInner) -> Self {
+impl<E> DnsResponseStream<E> {
+    fn new(inner: DnsResponseStreamInner<E>) -> Self {
         Self { inner, done: false }
     }
 }
 
-impl Stream for DnsResponseStream {
-    type Item = Result<DnsResponse, ProtoError>;
+impl<E: Unpin> Stream for DnsResponseStream<E> {
+    type Item = Result<DnsResponse, E>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         use DnsResponseStreamInner::*;
@@ -82,44 +82,44 @@ impl Stream for DnsResponseStream {
     }
 }
 
-impl From<TimeoutFuture> for DnsResponseStream {
-    fn from(f: TimeoutFuture) -> Self {
+impl<E> From<TimeoutFuture<E>> for DnsResponseStream<E> {
+    fn from(f: TimeoutFuture<E>) -> Self {
         Self::new(DnsResponseStreamInner::Timeout(f))
     }
 }
 
-impl From<mpsc::Receiver<ProtoResult<DnsResponse>>> for DnsResponseStream {
-    fn from(receiver: mpsc::Receiver<ProtoResult<DnsResponse>>) -> Self {
+impl<E> From<mpsc::Receiver<Result<DnsResponse, E>>> for DnsResponseStream<E> {
+    fn from(receiver: mpsc::Receiver<Result<DnsResponse, E>>) -> Self {
         Self::new(DnsResponseStreamInner::Receiver(receiver))
     }
 }
 
-impl From<ProtoError> for DnsResponseStream {
+impl<E> From<E> for DnsResponseStream<E> {
     fn from(e: ProtoError) -> Self {
         Self::new(DnsResponseStreamInner::Error(Some(e)))
     }
 }
 
-impl<F> From<Pin<Box<F>>> for DnsResponseStream
+impl<E, F> From<Pin<Box<F>>> for DnsResponseStream<E>
 where
-    F: Future<Output = Result<DnsResponse, ProtoError>> + Send + 'static,
+    F: Future<Output = Result<DnsResponse, E>> + Send + 'static,
 {
     fn from(f: Pin<Box<F>>) -> Self {
         Self::new(DnsResponseStreamInner::Boxed(
-            f as Pin<Box<dyn Future<Output = Result<DnsResponse, ProtoError>> + Send>>,
+            f as Pin<Box<dyn Future<Output = Result<DnsResponse, E>> + Send>>,
         ))
     }
 }
 
-enum DnsResponseStreamInner {
-    Timeout(TimeoutFuture),
-    Receiver(mpsc::Receiver<ProtoResult<DnsResponse>>),
-    Error(Option<ProtoError>),
-    Boxed(Pin<Box<dyn Future<Output = Result<DnsResponse, ProtoError>> + Send>>),
+enum DnsResponseStreamInner<E> {
+    Timeout(TimeoutFuture<E>),
+    Receiver(mpsc::Receiver<Result<DnsResponse, E>>),
+    Error(Option<E>),
+    Boxed(Pin<Box<dyn Future<Output = Result<DnsResponse, E>> + Send>>),
 }
 
-type TimeoutFuture = Pin<
-    Box<dyn Future<Output = Result<Result<DnsResponse, ProtoError>, io::Error>> + Send + 'static>,
+type TimeoutFuture<E> = Pin<
+    Box<dyn Future<Output = Result<Result<DnsResponse, E>, io::Error>> + Send + 'static>,
 >;
 
 // TODO: this needs to have the IP addr of the remote system...

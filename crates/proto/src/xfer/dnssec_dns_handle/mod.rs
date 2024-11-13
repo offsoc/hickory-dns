@@ -33,6 +33,7 @@ use crate::{
         Name, RData, Record, RecordData, RecordType, SerialNumber,
     },
     xfer::{dns_handle::DnsHandle, DnsRequest, DnsRequestOptions, DnsResponse, FirstAnswer},
+    DnsSecError,
 };
 
 #[cfg(feature = "dnssec")]
@@ -112,7 +113,8 @@ impl<H> DnsHandle for DnssecDnsHandle<H>
 where
     H: DnsHandle + Sync + Unpin,
 {
-    type Response = Pin<Box<dyn Stream<Item = Result<DnsResponse, ProtoError>> + Send>>;
+    type Response = Pin<Box<dyn Stream<Item = Result<DnsResponse, Self::Error>> + Send>>;
+    type Error = DnsSecError;
 
     fn is_verifying_dnssec(&self) -> bool {
         // This handler is always verifying...
@@ -124,15 +126,15 @@ where
 
         // backstop
         if self.request_depth > request.options().max_request_depth {
-            return Box::pin(stream::once(future::err(ProtoError::from(
-                "exceeded max validation depth",
-            ))));
+            return Box::pin(stream::once(future::err(
+                ProtoError::from("exceeded max validation depth").into(),
+            )));
         }
 
         // dnssec only matters on queries.
         match request.op_code() {
             OpCode::Query => {}
-            _ => return Box::pin(self.handle.send(request)),
+            _ => return Box::pin(self.handle.send(request).map_err(Into::into)),
         }
 
         // This will panic on no queries, that is a very odd type of request, isn't it?

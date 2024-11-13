@@ -209,7 +209,8 @@ impl<P> DnsHandle for NameServerPool<P>
 where
     P: ConnectionProvider + 'static,
 {
-    type Response = Pin<Box<dyn Stream<Item = Result<DnsResponse, ProtoError>> + Send>>;
+    type Response = Pin<Box<dyn Stream<Item = Result<DnsResponse, Self::Error>> + Send>>;
+    type Error = ResolveError;
 
     fn send<R: Into<DnsRequest>>(&self, request: R) -> Self::Response {
         let opts = self.options.clone();

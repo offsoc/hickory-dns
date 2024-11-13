@@ -7,6 +7,8 @@
 
 //! `DnsHandle` types perform conversions of the raw DNS messages before sending the messages on the specified streams.
 
+use std::error::Error as StdError;
+
 use futures_util::stream::Stream;
 use rand;
 use tracing::debug;
@@ -29,7 +31,8 @@ pub trait DnsStreamHandle: 'static + Send {
 /// A trait for implementing high level functions of DNS.
 pub trait DnsHandle: 'static + Clone + Send + Sync + Unpin {
     /// The associated response from the response stream, this should resolve to the Response messages
-    type Response: Stream<Item = Result<DnsResponse, ProtoError>> + Send + Unpin + 'static;
+    type Response: Stream<Item = Result<DnsResponse, Self::Error>> + Send + Unpin + 'static;
+    type Error: StdError + Send + Sync + 'static;
 
     /// Only returns true if and only if this DNS handle is validating DNSSEC.
     ///

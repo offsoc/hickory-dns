@@ -57,7 +57,8 @@ impl<H> DnsHandle for RetryDnsHandle<H>
 where
     H: DnsHandle + Send + Unpin + 'static,
 {
-    type Response = Pin<Box<dyn Stream<Item = Result<DnsResponse, ProtoError>> + Send + Unpin>>;
+    type Response = Pin<Box<dyn Stream<Item = Result<DnsResponse, Self::Error>> + Send + Unpin>>;
+    type Error = H::Error;
 
     fn send<R: Into<DnsRequest>>(&self, request: R) -> Self::Response {
         let request = request.into();
@@ -86,7 +87,7 @@ where
     remaining_attempts: usize,
 }
 
-impl<H: DnsHandle + Unpin> Stream for RetrySendStream<H> {
+impl<H: DnsHandle<Error = ProtoError> + Unpin> Stream for RetrySendStream<H> {
     type Item = Result<DnsResponse, ProtoError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -159,6 +160,7 @@ mod test {
 
     impl DnsHandle for TestClient {
         type Response = Box<dyn Stream<Item = Result<DnsResponse, ProtoError>> + Send + Unpin>;
+        type Error = ProtoError;
 
         fn send<R: Into<DnsRequest>>(&self, _: R) -> Self::Response {
             let i = self.attempts.load(Ordering::SeqCst);

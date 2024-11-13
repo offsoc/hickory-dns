@@ -163,6 +163,7 @@ macro_rules! try_oneshot {
 
 impl DnsHandle for BufDnsRequestStreamHandle {
     type Response = DnsResponseReceiver;
+    type Error = ProtoError;
 
     fn send<R: Into<DnsRequest>>(&self, request: R) -> Self::Response {
         let request: DnsRequest = request.into();
@@ -212,26 +213,26 @@ impl OneshotDnsRequest {
     }
 }
 
-struct OneshotDnsResponse(oneshot::Sender<DnsResponseStream>);
+struct OneshotDnsResponse<E>(oneshot::Sender<DnsResponseStream<E>>);
 
-impl OneshotDnsResponse {
-    fn send_response(self, serial_response: DnsResponseStream) -> Result<(), DnsResponseStream> {
+impl<E> OneshotDnsResponse<E> {
+    fn send_response(self, serial_response: DnsResponseStream<E>) -> Result<(), DnsResponseStream<E>> {
         self.0.send(serial_response)
     }
 }
 
 /// A Stream that wraps a [`oneshot::Receiver<Stream>`] and resolves to items in the inner Stream
-pub enum DnsResponseReceiver {
+pub enum DnsResponseReceiver<E> {
     /// The receiver
-    Receiver(oneshot::Receiver<DnsResponseStream>),
+    Receiver(oneshot::Receiver<DnsResponseStream<E>>),
     /// The stream once received
-    Received(DnsResponseStream),
+    Received(DnsResponseStream<E>),
     /// Error during the send operation
-    Err(Option<ProtoError>),
+    Err(Option<E>),
 }
 
-impl Stream for DnsResponseReceiver {
-    type Item = Result<DnsResponse, ProtoError>;
+impl<E: From<&'static str> + Unpin> Stream for DnsResponseReceiver<E> {
+    type Item = Result<DnsResponse, E>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         loop {
@@ -240,7 +241,7 @@ impl Stream for DnsResponseReceiver {
                     let receiver = Pin::new(receiver);
                     let future = ready!(receiver
                         .poll(cx)
-                        .map_err(|_| ProtoError::from("receiver was canceled")))?;
+                        .map_err(|_| E::from("receiver was canceled")))?;
                     Self::Received(future)
                 }
                 Self::Received(stream) => {

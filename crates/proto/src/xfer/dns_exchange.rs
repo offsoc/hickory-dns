@@ -106,6 +106,7 @@ impl Clone for DnsExchange {
 
 impl DnsHandle for DnsExchange {
     type Response = DnsExchangeSend;
+    type Error = ProtoError;
 
     fn send<R: Into<DnsRequest> + Unpin + Send + 'static>(&self, request: R) -> Self::Response {
         DnsExchangeSend {

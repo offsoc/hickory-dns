@@ -172,7 +172,8 @@ impl<P> DnsHandle for NameServer<P>
 where
     P: ConnectionProvider + Clone,
 {
-    type Response = Pin<Box<dyn Stream<Item = Result<DnsResponse, ProtoError>> + Send>>;
+    type Response = Pin<Box<dyn Stream<Item = Result<DnsResponse, Self::Error>> + Send>>;
+    type Error = ResolveError;
 
     fn is_verifying_dnssec(&self) -> bool {
         self.options.validate
