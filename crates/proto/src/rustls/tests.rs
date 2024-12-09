@@ -17,9 +17,6 @@ use std::sync::Arc;
 use std::{thread, time};
 
 use futures_util::stream::StreamExt;
-use openssl::pkey::PKey;
-use openssl::ssl::{SslAcceptor, SslMethod, SslVerifyMode};
-use openssl::x509::X509;
 use rustls::pki_types::CertificateDer;
 use rustls::ClientConfig;
 use tokio::runtime::Runtime;

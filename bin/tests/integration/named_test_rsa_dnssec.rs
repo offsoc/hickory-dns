@@ -20,19 +20,9 @@ use hickory_proto::tcp::TcpClientStream;
 use hickory_proto::xfer::{DnsExchangeBackground, DnsMultiplexer, Protocol};
 use hickory_proto::DnssecDnsHandle;
 
-#[cfg(all(not(feature = "dnssec-ring"), feature = "dnssec-openssl"))]
-fn confg_toml() -> &'static str {
-    "openssl_dnssec.toml"
-}
-
-#[cfg(all(feature = "dnssec-ring", not(feature = "dnssec-openssl")))]
+#[cfg(feature = "dnssec-ring")]
 fn confg_toml() -> &'static str {
     "ring_dnssec.toml"
-}
-
-#[cfg(all(feature = "dnssec-ring", feature = "dnssec-openssl"))]
-fn confg_toml() -> &'static str {
-    "all_supported_dnssec.toml"
 }
 
 fn trust_anchor(
@@ -132,17 +122,6 @@ fn test_ecdsa_p256() {
         confg_toml(),
         "tests/test-data/test_configs/dnssec/ecdsa_p256.pem",
         KeyFormat::Pem,
-        Algorithm::ECDSAP256SHA256,
-    );
-}
-
-#[test]
-#[cfg(feature = "dnssec-ring")]
-fn test_ecdsa_p256_pkcs8() {
-    generic_test(
-        confg_toml(),
-        "tests/test-data/test_configs/dnssec/ecdsa_p256.pk8",
-        KeyFormat::Pkcs8,
         Algorithm::ECDSAP256SHA256,
     );
 }
