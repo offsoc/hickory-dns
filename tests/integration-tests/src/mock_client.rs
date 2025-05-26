@@ -213,7 +213,7 @@ pub fn message(
     name_servers: Vec<Record>,
     additionals: Vec<Record>,
 ) -> Message {
-    let mut message = Message::new();
+    let mut message = Message::query();
     message.add_query(query);
     message.insert_answers(answers);
     message.insert_name_servers(name_servers);
@@ -222,7 +222,7 @@ pub fn message(
 }
 
 pub fn empty() -> Result<DnsResponse, ProtoError> {
-    Ok(DnsResponse::from_message(Message::new()).unwrap())
+    Ok(DnsResponse::from_message(Message::query()).unwrap())
 }
 
 pub fn error<E>(error: E) -> Result<DnsResponse, E> {
