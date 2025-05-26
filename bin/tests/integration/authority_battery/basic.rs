@@ -468,7 +468,7 @@ pub fn test_aname_chain<A: Authority<Lookup = AuthLookup>>(authority: A) {
 }
 
 pub fn test_update_errors<A: Authority<Lookup = AuthLookup>>(mut authority: A) {
-    let mut message = Message::default();
+    let mut message = Message::new();
     message.add_query(Query::new());
     let bytes = message.to_vec().unwrap();
     let update = MessageRequest::from_bytes(&bytes).unwrap();
