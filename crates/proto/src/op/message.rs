@@ -17,6 +17,7 @@ use tracing::{debug, warn};
 use crate::{
     error::*,
     op::{Edns, Header, MessageType, OpCode, Query, ResponseCode},
+    random,
     rr::{Record, RecordType},
     serialize::binary::{BinDecodable, BinDecoder, BinEncodable, BinEncoder, EncodeMode},
     xfer::DnsResponse,
@@ -78,9 +79,10 @@ pub struct Message {
 
 impl Message {
     /// Returns a new "empty" Message
+    #[cfg(any(feature = "std", feature = "no-std-rand"))]
     pub fn query() -> Self {
         Self {
-            header: Header::new(),
+            header: Header::new(random(), MessageType::Query, OpCode::Query),
             queries: Vec::new(),
             answers: Vec::new(),
             name_servers: Vec::new(),
