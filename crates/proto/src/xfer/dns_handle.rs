@@ -16,7 +16,7 @@ use crate::op::Query;
 use crate::xfer::{DnsRequest, DnsRequestOptions, DnsResponse, SerialMessage};
 #[cfg(any(feature = "std", feature = "no-std-rand"))]
 use crate::{
-    op::{Edns, Message, MessageType, OpCode},
+    op::{Edns, Message, OpCode},
     random,
 };
 
@@ -103,7 +103,6 @@ fn build_request(mut query: Query, options: DnsRequestOptions) -> DnsRequest {
     message
         .add_query(query)
         .set_id(id)
-        .set_message_type(MessageType::Query)
         .set_op_code(OpCode::Query)
         .set_recursion_desired(options.recursion_desired);
 
